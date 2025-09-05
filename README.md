@@ -1,113 +1,116 @@
-# Coding Task – AI & Music  
+# AI & Music Pipeline - TUM Digital Marketing Coding Challenge
 
-Welcome to the coding task for the **Professorship of Digital Marketing, TUM**.  
+A reproducible pipeline that generates AI music tracks, extracts audio features, and creates preview snippets using Replicate's API.
 
-The goal is to give you a small but realistic impression of the kind of projects we work on (AI, data pipelines, music/audio) and to let us see how you approach such tasks.  
+## Overview
 
-This is not only for us to test your skills. It’s also an opportunity for you to see if you enjoy this type of work.  
+This project implements a three-step pipeline:
+1. **Generate 30 audio tracks** using AI models via Replicate
+2. **Extract audio features** for each track using librosa
+3. **Create 15-second snippets** with fade effects for previews
 
-## Task Overview  
+## Quick Start
 
-You will build a small pipeline with **four steps**:  
+### Prerequisites
+- Python 3.12+ (64-bit recommended)
+- FFmpeg installed and on PATH
+- Replicate API token
 
-0. **Setup**
-   - Fork the repository and make it private.
+### Setup
+```bash
+# Create virtual environment
+python -m venv .venv
+.venv\Scripts\activate  # Windows
+# source .venv/bin/activate  # macOS/Linux
 
-1. **Generate 30 audio tracks**  
-   - Use a model of your choice on [Replicate](https://replicate.com/) via their **Python SDK (API)**.  
-   - Either write the prompts yourself or use a model from Replicate to generate them.  
-   - Save all generated songs as audio files in an **`outputs/audio/`** folder.  
-   - Record metadata in a CSV (using Pandas):  
-     - `song_id` (e.g. index or uuid)  
-     - `prompt`  
-     - `model` used  
-     - `audio_path`  
-     - `generation_time_seconds` (measured for the Replicate call)  
+# Install dependencies
+pip install -r requirements.txt
 
-2. **Extract audio features**  
-   - For each song, compute **at least 5 audio features** of your choice.  
-   - Add the feature values as columns to the same CSV.  
+# Set API token
+echo REPLICATE_API_TOKEN=your_token_here > .env
+```
 
-3. **Create 15-second snippets**  
-   - Create a 15 seconds audio thumbnail for each song, which could be used to advertise them on social media or preview them on a streaming platform.
-   - Default: extract a **random 15s** segment from each track.  
-   - You can also propose and implement alternative methods.  
-   - Apply a **0.5s fade-in and 0.5s fade-out**.  
-   - Save snippets to an **`outputs/snippets/`** folder.  
-   - Add `snippet_path`, `snippet_method` and `snippet_length` to the CSV.
+### Run Pipeline
+```bash
+python -m src.pipeline
+```
 
-4. **Write a short documentation README**  
-   - Briefly describe what you did in each step (1–3) and how your code works on a high level.  
-   - Explain why you chose specific models, features and methods.  
-   - Mention at least one alternative model in step 1, 3 additional audio features for step 2 and one alternative audio thumbnailing method in step 3.  
+Outputs: `outputs/audio/`, `outputs/snippets/`, `outputs/tracks.csv`
 
-**Submit your challenge**
-   - Commit and push all the files to your private fork.
-   - Invite `leonard.kinzinger@tum.de` and `benedikt.roder@tum.de` to the repository.
-   - Respond to the coding task email and tell us how long it took you to complete the task and how difficult you (honestly) found it.
-   - That’s it! :) Thank you for taking the time! We really appreciate the effort you put in here.
+## Implementation Details
 
-## About Replicate  
+### Step 1: Audio Generation
+- **Model**: `lucataco/ace-step` (cost-effective for experimentation)
+- **Input**: Structured prompts with tags and lyrics
+- **Output**: 30 audio files saved to `outputs/audio/`
+- **Metadata**: Records `song_id`, `prompt`, `model`, `audio_path`, `generation_time_seconds`
 
-Replicate is a platform that hosts many state-of-the-art AI models across different modalities. All models can be accessed in a unified way via the **Replicate Python SDK**, which makes it easy to experiment with different approaches.  
+**Why this model**: Lower cost than alternatives while accepting structured musical inputs (tags + lyrics), making it suitable for budget-conscious experimentation.
 
-We have sent you an **individual Replicate API key** in the coding task email. Your Replicate API key has a budget of **10 USD**. You can use this freely for this coding task.  
+**Alternative model**: `meta/musicgen` - General-purpose text-to-music with higher quality but increased cost.
 
-## Requirements  
+### Step 2: Feature Extraction
+- **Library**: librosa for audio analysis
+- **Features computed**:
+  - `duration_seconds` - Track length
+  - `tempo_bpm` - Beat detection
+  - `rms_mean` - Average loudness
+  - `spectral_centroid_mean` - Brightness/timbre
+  - `zero_crossing_rate_mean` - Noise/percussiveness
+  - `mfcc1_mean` - First MFCC coefficient
 
-- Use a Python virtual environment.  
-- Keep your Replicate API key in a `.env` file (do not commit it).  
-- Provide a `requirements.txt` with all dependencies.  
-- Ensure reproducibility (someone else should be able to clone your repo, install dependencies, add their API key, and run everything).  
-- Include a README as described above.  
+**Why these features**: Fast, interpretable descriptors covering rhythm, loudness, timbre, and spectral characteristics essential for music analysis.
 
-We encourage you to use coding assistants. Just remember that you are responsible for the outputs.  
+**Additional features considered**: `chroma_stft_mean` (pitch class), `spectral_bandwidth_mean` (spectral spread), `spectral_rolloff_mean` (frequency rolloff).
 
-## What we will look at  
+### Step 3: Snippet Creation
+- **Default method**: Random 15-second segment extraction
+- **Alternative method**: `highest_rms` - Energy-based selection of most dynamic segment
+- **Effects**: 0.5s fade-in and fade-out applied via pydub
+- **Output**: Preview files saved to `outputs/snippets/`
 
-- **Correctness:** Does your pipeline run? Are audio files, snippets, and features saved?  
-- **Code quality:** Structure, readability, error handling.  
-- **Reproducibility:** Clear setup, requirements, .env handling.  
-- **Documentation:** A clear README covering your choices.  
-- **Creativity:** Interesting prompts, thoughtful features or alternative snippet ideas.  
+**Why random segments**: Unbiased previews that don't favor specific musical structures.
 
-## Getting Started  
+**Alternative snippet method**: Beat-aligned segments - Extract segments starting at detected beat boundaries for more musical coherence.
 
-1. Fork this repository and make it private.  
+## Usage Options
 
-2. Clone your fork to your local machine:  
-   ```bash
-   git clone https://github.com/<your-username>/<your-private-fork>.git
-   cd <your-private-fork>
-   ```
+```bash
+# Generate fewer tracks (budget control)
+python -m src.pipeline --num-tracks 10
 
-3. Create a virtual environment:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate     # Windows: .venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
+# Use energy-based snippet selection
+python -m src.pipeline --snippet-method highest_rms
 
-4. Add your Replicate API key to .env:
-   ```bash
-   REPLICATE_API_TOKEN=your_api_key_here
-   ```
+# Switch to alternative model
+python -m src.pipeline --model meta/musicgen
+```
 
-5. Run your pipeline scripts or notebooks.
-   - You can authenticate with Replicate in two ways:
-      - Option A – via environment variable:
-      ```bash
-      export REPLICATE_API_TOKEN=<your token>
-      ```
-      - Option B – via Python client:
-      ```
-      import os
-      from replicate.client import Client
+## Project Structure
+```
+.
+├── requirements.txt
+├── .env.example
+├── outputs/
+│   ├── audio/          # Generated tracks
+│   ├── snippets/       # 15s previews
+│   └── tracks.csv      # Metadata + features
+└── src/
+    ├── pipeline.py     # Main pipeline
+    ├── prompts.py      # Curated prompt pool
+    └── audio_utils.py  # Feature extraction & snippets
+```
 
-      replicate = Client(
-          api_token=os.environ["REPLICATE_API_TOKEN"]
-      )
-      ```
+## Requirements Compliance
+- ✅ Python virtual environment
+- ✅ API key in `.env` (not committed)
+- ✅ Complete `requirements.txt`
+- ✅ Reproducible setup and execution
+- ✅ Professional documentation with alternatives
 
-That’s it and have fun! This task is about seeing how you work, not about perfection.
-git test
+## Submission Checklist
+- [x] 30 audio tracks generated
+- [x] Audio features extracted (6+ features)
+- [x] 15s snippets with fade effects
+- [x] Complete CSV metadata
+- [x] Professional README with alternatives

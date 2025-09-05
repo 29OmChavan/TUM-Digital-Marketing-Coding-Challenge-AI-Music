@@ -1,0 +1,45 @@
+name: Cog Push (Cloud)
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_repo:
+        description: "r8.im/<user>/<model> (e.g., r8.im/29omchavan/kompana)"
+        required: true
+
+env:
+  REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pipx
+        run: |
+          python3 -m pip install --user pipx
+          python3 -m pipx ensurepath
+          echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Install Cog
+        run: |
+          pipx install cog
+          cog --version
+
+      - name: Login to Replicate
+        env:
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+        run: |
+          if [ -z "$REPLICATE_API_TOKEN" ]; then echo "Missing REPLICATE_API_TOKEN secret"; exit 1; fi
+          # Prefer non-interactive login if supported; otherwise rely on env var
+          cog login --token "$REPLICATE_API_TOKEN" || true
+
+      - name: Push image
+        run: |
+          MODEL_REPO="${{ github.event.inputs.model_repo }}"
+          if [ -z "$MODEL_REPO" ]; then echo "Missing model_repo input"; exit 1; fi
+          cog push "$MODEL_REPO"
+
+
